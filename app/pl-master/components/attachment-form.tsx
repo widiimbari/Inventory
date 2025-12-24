@@ -36,11 +36,11 @@ import {
 const formSchema = z.object({
   nomor: z.string().min(1, "No Packing List is required."),
   timestamp: z.date({
-    required_error: "Tanggal is required.",
+    message: "Tanggal is required.",
   }),
   type: z.string().min(1, "Type is required."),
   tgl_order: z.date({
-    required_error: "Tanggal Test is required.",
+    message: "Tanggal Test is required.",
   }),
   area: z.string().min(1, "Area is required."),
 });

@@ -7,7 +7,7 @@ export async function PATCH(req: Request) {
   try {
     const currentUser = await getCurrentUser();
     
-    if (!currentUser) {
+    if (!currentUser || !currentUser.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -32,7 +32,7 @@ export async function PATCH(req: Request) {
     // YES. We should send PLAIN TEXT `newPassword`.
     
     await db.users.update({
-      where: { id: parseInt(currentUser.id) },
+      where: { id: parseInt(currentUser.id as string) },
       data: {
         password: newPassword, // DB Trigger will hash this
       },

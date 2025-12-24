@@ -102,8 +102,8 @@ const customDarkTheme = createTheme({
             color: "#556B2F",
         }
       },
-    },
-  },
+    } as any,
+  } as any,
 });
 
 interface DataGridTableProps {

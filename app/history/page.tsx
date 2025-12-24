@@ -3,7 +3,7 @@ import { columns } from "./components/columns";
 import DataTable from "../products/components/data-table"; // Re-using the DataTable component
 
 export default async function HistoryPage() {
-  let data = [];
+  let data: any[] = [];
   try {
     data = await db.logs.findMany({
       take: 100, // Limit to the latest 100 entries for performance

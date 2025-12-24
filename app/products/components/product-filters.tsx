@@ -7,6 +7,7 @@ import { Calendar as CalendarIcon, X, FileSpreadsheet } from "lucide-react"; // 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input"; // Input might not be used anymore, but keep for now
 import { Calendar } from "@/components/ui/calendar";
+import { DateRange } from "react-day-picker";
 import {
   Popover,
   PopoverContent,

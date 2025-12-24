@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Copy, Edit, MoreHorizontal, Trash } from "lucide-react";
-import { toast } from "sonner"; // Assuming sonner or similar toast
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

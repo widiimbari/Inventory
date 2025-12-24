@@ -72,7 +72,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
             <DialogTitle>Edit PL Slave {data.nomor}</DialogTitle>
           </DialogHeader>
           <Attachment2Form
-            attachment2={data}
+            initialData={data}
             onSuccess={() => setIsEditOpen(false)}
           />
         </DialogContent>

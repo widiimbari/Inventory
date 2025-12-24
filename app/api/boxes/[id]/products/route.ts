@@ -3,10 +3,11 @@ import { db } from "@/lib/db";
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const boxId = Number(params.id);
+    const { id: idStr } = await params;
+    const boxId = Number(idStr);
     if (isNaN(boxId)) {
       return new NextResponse("Invalid Box ID", { status: 400 });
     }

@@ -73,21 +73,39 @@ export async function GET(req: Request) {
 
       const boxes = await db.box.findMany({
         where: finalBoxWhere,
-        include: {
-          pallete: true,
-          _count: { select: { product: true } },
-        },
         orderBy: { timestamp: "desc" },
       });
 
-      exportData = boxes.map((b) => ({
-        serial: b.serial,
-        pallet_serial: b.pallete?.serial || "-",
-        type: b.type,
-        count: b._count.product,
-        line: b.line,
-        timestamp: b.timestamp,
-      }));
+      // Manual fetching of related data
+      const pIds = boxes.map(b => b.pallete_id).filter((id): id is number => id !== null);
+      let pallets: any[] = [];
+      if (pIds.length > 0) {
+          pallets = await db.pallete.findMany({
+              where: { id: { in: pIds } },
+              select: { id: true, serial: true }
+          });
+      }
+
+      // Manual counting of products per box
+      const boxIdsForCounting = boxes.map(b => b.id);
+      const counts = await db.product.groupBy({
+          by: ['box_id'],
+          where: { box_id: { in: boxIdsForCounting } },
+          _count: { _all: true }
+      });
+
+      exportData = boxes.map((b) => {
+        const pallet = pallets.find(p => p.id === b.pallete_id);
+        const countObj = counts.find(c => c.box_id === b.id);
+        return {
+          serial: b.serial,
+          pallet_serial: pallet?.serial || "-",
+          type: b.type,
+          count: countObj?._count._all || 0,
+          line: b.line,
+          timestamp: b.timestamp,
+        };
+      });
 
       columns = [
         { header: "Box Serial", key: "serial", width: 25 },
@@ -133,19 +151,27 @@ export async function GET(req: Request) {
 
       const pallets = await db.pallete.findMany({
         where: finalPalletWhere,
-        include: {
-          _count: { select: { box: true } },
-        },
         orderBy: { timestamp: "desc" },
       });
 
-      exportData = pallets.map((p) => ({
-        serial: p.serial,
-        type: p.type,
-        count: p._count.box,
-        line: p.line,
-        timestamp: p.timestamp,
-      }));
+      // Manual counting of boxes per pallet
+      const palIdsForCounting = pallets.map(p => p.id);
+      const boxCounts = await db.box.groupBy({
+          by: ['pallete_id'],
+          where: { pallete_id: { in: palIdsForCounting } },
+          _count: { _all: true }
+      });
+
+      exportData = pallets.map((p) => {
+        const bCountObj = boxCounts.find(bc => bc.pallete_id === p.id);
+        return {
+          serial: p.serial,
+          type: p.type,
+          count: bCountObj?._count._all || 0,
+          line: p.line,
+          timestamp: p.timestamp,
+        };
+      });
 
       columns = [
         { header: "Pallet Serial", key: "serial", width: 25 },
@@ -228,7 +254,7 @@ export async function GET(req: Request) {
         if (fs.existsSync(logoPath)) {
             const logoBuffer = fs.readFileSync(logoPath);
             const logoId = workbook.addImage({
-                buffer: logoBuffer,
+                buffer: logoBuffer as any,
                 extension: 'png',
             });
 

@@ -43,10 +43,10 @@ type AttachmentWithCounts = attachment & {
 const formSchema = z.object({
   nomor: z.string().min(1, "No Packing List Slave is required."),
   timestamp: z.date({
-    required_error: "Tanggal is required.",
+    message: "Tanggal is required.",
   }),
   tgl_order: z.date({
-    required_error: "Tanggal Order is required.",
+    message: "Tanggal Order is required.",
   }),
   area: z.string().min(1, "Area is required."),
   no_do: z.string().min(1, "No DO is required."),
