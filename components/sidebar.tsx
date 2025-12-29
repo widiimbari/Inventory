@@ -39,7 +39,7 @@ import {
 
 const initialNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/products", label: "Inventory", icon: Boxes },
+  { href: "/products", label: "Products", icon: Boxes },
   { href: "/pl-master", label: "PL Master", icon: ClipboardList },
   { href: "/pl-slave", label: "PL Slave", icon: FileSpreadsheet },
 ];

@@ -5,6 +5,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -35,6 +36,7 @@ interface DataTableProps<TData> {
     onPageSizeChange: (pageSize: number) => void;
   };
   loading?: boolean;
+  footer?: React.ReactNode;
 }
 
 export function DataTable<TData>({
@@ -42,6 +44,7 @@ export function DataTable<TData>({
   data,
   pagination,
   loading = false,
+  footer,
 }: DataTableProps<TData>) {
   
   // Calculate total pages if pagination is provided
@@ -60,8 +63,7 @@ export function DataTable<TData>({
                     key={col.id || String(col.accessorKey) || index} 
                     style={{ width: col.width }}
                     className={cn(
-                        "text-primary bg-slate-50", 
-                        index === 0 && "text-center", 
+                        "text-primary bg-slate-50 text-left", 
                         col.className
                     )}
                   >
@@ -94,7 +96,7 @@ export function DataTable<TData>({
                             key={colIndex} 
                             className={cn(
                                 "px-4 py-3 text-sm text-foreground text-left", 
-                                colIndex === 0 && "text-center font-semibold" // Keep No index centered
+                                col.className
                             )}
                         >
                           {col.cell ? col.cell({ row, value }) : value}
@@ -111,6 +113,7 @@ export function DataTable<TData>({
                 </TableRow>
               )}
             </TableBody>
+            {footer && <TableFooter className="sticky bottom-0 z-10 bg-slate-50 border-t-2">{footer}</TableFooter>}
           </Table>
         </div>
       </div>

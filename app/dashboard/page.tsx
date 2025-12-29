@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -8,35 +10,43 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Package, Warehouse, Boxes, Activity, ArrowUpRight, Clock, TrendingUp } from "lucide-react";
+import { 
+  Package, 
+  Warehouse, 
+  Boxes, 
+  Activity, 
+  Clock, 
+  CalendarDays,
+  History,
+  TrendingUp,
+  AlertCircle
+} from "lucide-react";
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  Cell 
+} from 'recharts';
 
-interface Log {
-  id: number;
-  desc: string;
-  timestamp: string;
-  line: string;
-}
-
-interface DashboardStats {
-  productCount: number;
-  boxCount: number;
-  palletCount: number;
-  dailyOutput: number;
-  weeklyOutput: number;
-  monthlyOutput: number;
+interface DashboardData {
+  summary: {
+    boxCount: number;
+    palletCount: number;
+    dailyOutput: number;
+    weeklyOutput: number;
+  };
   topTypes: { type: string; count: number }[];
+  recentLogs: { id: number; desc: string; timestamp: string; line: string; code: string }[];
+  chartData: { date: string; count: number }[];
+  activeLines: { line: string; meter_type: string; no_po: string; daily_counter: string; qty_box: string }[];
 }
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>({
-    productCount: 0,
-    boxCount: 0,
-    palletCount: 0,
-    dailyOutput: 0,
-    weeklyOutput: 0,
-    monthlyOutput: 0,
-    topTypes: [],
-  });
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,8 +54,8 @@ export default function DashboardPage() {
       try {
         const res = await fetch("/api/dashboard/stats");
         if (!res.ok) throw new Error("Failed to fetch");
-        const data = await res.json();
-        setStats(data);
+        const result = await res.json();
+        setData(result);
       } catch (error) {
         console.error("Failed to fetch stats", error);
       } finally {
@@ -56,169 +66,215 @@ export default function DashboardPage() {
     fetchStats();
   }, []);
 
-  const inventoryItems = [
-    {
-      title: "Total Produk",
-      value: loading ? "..." : stats.productCount.toLocaleString("id-ID"),
-      icon: Package,
-      description: "Item in inventory",
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-    },
-    {
-      title: "Total Boks",
-      value: loading ? "..." : stats.boxCount.toLocaleString("id-ID"),
-      icon: Warehouse,
-      description: "Registered boxes",
-      color: "text-indigo-600",
-      bgColor: "bg-indigo-50",
-    },
-    {
-      title: "Total Palet",
-      value: loading ? "..." : stats.palletCount.toLocaleString("id-ID"),
-      icon: Boxes,
-      description: "Ready pallets",
-      color: "text-violet-600",
-      bgColor: "bg-violet-50",
-    },
-  ];
-
-  const outputItems = [
-    {
-      title: "Output Harian",
-      value: loading ? "..." : stats.dailyOutput.toLocaleString("id-ID"),
-      icon: Activity,
-      description: "Today's production",
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-50",
-    },
-    {
-      title: "Output Mingguan",
-      value: loading ? "..." : stats.weeklyOutput.toLocaleString("id-ID"),
-      icon: Activity,
-      description: "This week",
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-50",
-    },
-    {
-      title: "Output Bulanan",
-      value: loading ? "..." : stats.monthlyOutput.toLocaleString("id-ID"),
-      icon: Activity,
-      description: "This month",
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-50",
-    },
-  ];
+  const StatCard = ({ title, value, icon: Icon, color, subtext }: any) => (
+    <Card className="border-slate-100 shadow-sm hover:shadow-md transition-all duration-200">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between space-x-4">
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-slate-50/50 border border-slate-100">
+            <Icon className={`w-6 h-6 ${color}`} />
+          </div>
+          <div className="flex-1 text-right">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{title}</p>
+            <h4 className="text-2xl font-bold text-slate-900 mt-1">
+              {loading ? "..." : value?.toLocaleString("id-ID")}
+            </h4>
+          </div>
+        </div>
+        {subtext && (
+           <div className="mt-4 flex items-center justify-end text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+              {subtext}
+           </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   return (
-    <div className="flex-1 space-y-8 p-8 pt-6 bg-slate-50/50 min-h-full">
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0">
+    <div className="flex-1 space-y-8 p-8 pt-6 bg-[#F8FAFC] min-h-screen">
+      
+      {/* Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h2>
-          <p className="text-slate-500 mt-1">
-            Overview of inventory status and production metrics.
-          </p>
+          <h2 className="text-3xl font-bold tracking-tight text-slate-900">Analytics Dashboard</h2>
+          <p className="text-slate-500 mt-1 uppercase text-xs font-bold tracking-widest">Real-time production monitoring & inventory status</p>
         </div>
-        <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm text-sm font-medium text-slate-600">
-            <Clock className="h-4 w-4 text-slate-400" />
-            <span>{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        <div className="bg-white px-4 py-2 rounded-xl border shadow-sm text-sm font-bold text-slate-600 flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-blue-500" />
+            {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </div>
       </div>
 
-      {/* Stats Grid - Inventory */}
-      <div>
-        <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-            Inventory Status
-        </h3>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {inventoryItems.map(({ title, value, icon: Icon, description, color, bgColor }) => (
-            <Card key={title} className="border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-500 uppercase tracking-wider">
-                    {title}
-                </CardTitle>
-                <div className={`p-2 rounded-md ${bgColor}`}>
-                    <Icon className={`h-4 w-4 ${color}`} />
-                </div>
-                </CardHeader>
-                <CardContent>
-                <div className="text-3xl font-bold text-slate-900">{value}</div>
-                <p className="text-xs text-slate-400 mt-1">
-                    {description}
-                </p>
-                </CardContent>
-            </Card>
-            ))}
-        </div>
+      {/* Summary Cards */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard 
+            title="Today's Output" 
+            value={data?.summary.dailyOutput} 
+            icon={Activity} 
+            color="text-emerald-600"
+            subtext="Products produced today"
+        />
+        <StatCard 
+            title="Weekly Output" 
+            value={data?.summary.weeklyOutput} 
+            icon={TrendingUp} 
+            color="text-blue-600"
+            subtext="Products this week (Mon-Sun)"
+        />
+        <StatCard 
+            title="Total Boxes" 
+            value={data?.summary.boxCount} 
+            icon={Warehouse} 
+            color="text-indigo-600"
+            subtext="Registered in system"
+        />
+        <StatCard 
+            title="Total Pallets" 
+            value={data?.summary.palletCount} 
+            icon={Boxes} 
+            color="text-violet-600"
+            subtext="Ready for shipment"
+        />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-        {/* Output Performance */}
-        <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                Production Performance
-            </h3>
-            <div className="grid gap-4">
-                {outputItems.map(({ title, value, icon: Icon, description, color, bgColor }) => (
-                <Card key={title} className="border-slate-100 shadow-sm flex items-center p-4">
-                    <div className={`p-3 rounded-full ${bgColor} mr-4`}>
-                        <Icon className={`h-5 w-5 ${color}`} />
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-slate-500">{title}</p>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-2xl font-bold text-slate-900">{value}</span>
-                            <span className="text-xs text-slate-400">/ {description}</span>
-                        </div>
-                    </div>
-                </Card>
-                ))}
+      {/* Main Charts Section */}
+      <div className="grid gap-6 md:grid-cols-7">
+        
+        {/* Left: Productivity Chart (Span 4) */}
+        <Card className="md:col-span-4 border-none shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-2xl overflow-hidden">
+          <CardHeader className="bg-white pb-2">
+            <CardTitle className="text-lg font-bold text-slate-800">Weekly Productivity</CardTitle>
+            <CardDescription className="text-xs font-medium text-slate-400 uppercase tracking-widest">Daily production output for the last 7 days</CardDescription>
+          </CardHeader>
+          <CardContent className="bg-white pl-0 pb-6">
+            <div className="h-[300px] w-full">
+                {loading ? (
+                    <div className="h-full w-full flex items-center justify-center text-slate-400 text-sm">Loading Chart...</div>
+                ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={data?.chartData}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                            <XAxis 
+                                dataKey="date" 
+                                tickLine={false} 
+                                axisLine={false} 
+                                tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 700 }} 
+                                dy={10}
+                            />
+                            <YAxis 
+                                tickLine={false} 
+                                axisLine={false} 
+                                tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 700 }} 
+                            />
+                            <Tooltip 
+                                cursor={{ fill: '#F8FAFC' }}
+                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', padding: '12px' }}
+                            />
+                            <Bar dataKey="count" fill="#0F172A" radius={[6, 6, 0, 0]} barSize={32}>
+                                {data?.chartData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={index === data.chartData.length - 1 ? '#3B82F6' : '#1E293B'} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                )}
             </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Top 10 Output */}
-        <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                Top Output by Type
-            </h3>
-            <Card className="border-slate-100 shadow-sm h-full">
-            <CardHeader>
-                <CardDescription>
-                Highest production volume by meter type.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                {stats.topTypes.map((item, index) => (
-                    <div key={item.type} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${index < 3 ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                            {index + 1}
-                            </span>
-                            <span className="font-medium text-sm text-slate-700">{item.type}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-24 bg-slate-100 rounded-full h-2 hidden sm:block">
+        {/* Right: Top Products (Span 3) */}
+        <Card className="md:col-span-3 border-none shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-2xl overflow-hidden bg-white">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold text-slate-800">Top Meter Types</CardTitle>
+            <CardDescription className="text-xs font-medium text-slate-400 uppercase tracking-widest">Highest volume production distribution</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+                {loading ? (
+                    <div className="space-y-4">
+                        {[1,2,3,4,5].map(i => <div key={i} className="h-10 bg-slate-50 rounded-xl animate-pulse" />)}
+                    </div>
+                ) : (
+                    data?.topTypes.map((item, index) => (
+                        <div key={item.type} className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="font-bold text-slate-700 truncate pr-4">{item.type}</span>
+                                <span className="font-black text-slate-900">{item.count.toLocaleString()}</span>
+                            </div>
+                            <div className="w-full bg-slate-50 rounded-full h-2.5 overflow-hidden">
                                 <div 
-                                    className="bg-slate-900 h-2 rounded-full" 
-                                    style={{ width: `${Math.min(100, (item.count / (stats.topTypes[0]?.count || 1)) * 100)}%` }}
+                                    className={cn(
+                                        "h-full rounded-full transition-all duration-1000",
+                                        index === 0 ? "bg-blue-500" : "bg-slate-300"
+                                    )}
+                                    style={{ width: `${Math.min(100, (item.count / (data.topTypes[0]?.count || 1)) * 100)}%` }}
                                 ></div>
                             </div>
-                            <span className="font-bold text-sm text-slate-900 min-w-[60px] text-right">
-                                {item.count.toLocaleString("id-ID")}
-                            </span>
                         </div>
-                    </div>
-                ))}
-                {!loading && stats.topTypes.length === 0 && (
-                    <p className="text-center text-slate-400 py-8 text-sm">Data output belum tersedia.</p>
+                    ))
                 )}
-                </div>
-            </CardContent>
-            </Card>
-        </div>
+                {!loading && data?.topTypes.length === 0 && (
+                    <div className="text-center text-slate-400 text-sm py-4 italic font-medium">No production data available</div>
+                )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Bottom: Recent Logs */}
+      <Card className="border-none shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-2xl overflow-hidden bg-white">
+        <CardHeader className="border-b border-slate-50 pb-4">
+            <div className="flex items-center justify-between">
+                <div>
+                    <CardTitle className="text-lg font-bold text-slate-800">System Activity</CardTitle>
+                    <CardDescription className="text-xs font-medium text-slate-400 uppercase tracking-widest">Real-time system events and audit logs</CardDescription>
+                </div>
+                <div className="p-2 bg-slate-50 rounded-lg">
+                    <History className="h-5 w-5 text-slate-400" />
+                </div>
+            </div>
+        </CardHeader>
+        <CardContent className="p-0">
+            <div className="divide-y divide-slate-50">
+                {loading ? (
+                     <div className="text-center py-12 text-slate-400 font-medium italic">Syncing activity logs...</div>
+                ) : (
+                    data?.recentLogs.map((log, index) => (
+                        <div key={log.id} className="flex items-center gap-4 p-4 hover:bg-slate-50/50 transition-colors">
+                            <div className={cn(
+                                "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border",
+                                log.code === 'NG' || log.code === 'ERR' ? "bg-red-50 border-red-100 text-red-500" : "bg-blue-50 border-blue-100 text-blue-500"
+                            )}>
+                                {log.code === 'NG' || log.code === 'ERR' ? <AlertCircle className="h-5 w-5" /> : <Activity className="h-5 w-5" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-slate-900 truncate uppercase tracking-tight">{log.desc}</p>
+                                <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                                    <span className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3" />
+                                        {new Date(log.timestamp).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: 'numeric', month: 'short' })}
+                                    </span>
+                                    <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-black">
+                                        {log.line}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="hidden sm:block">
+                                <span className={cn(
+                                    "text-[10px] font-black px-2 py-1 rounded-md border uppercase tracking-widest",
+                                    log.code === 'OK' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-500 border-slate-100"
+                                )}>
+                                    {log.code}
+                                </span>
+                            </div>
+                        </div>
+                    ))
+                )}
+                {!loading && data?.recentLogs.length === 0 && (
+                    <div className="text-center py-12 text-slate-400 font-medium italic">No recent activity found.</div>
+                )}
+            </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
